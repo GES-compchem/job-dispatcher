@@ -1,0 +1,61 @@
+{% set name = "job-dispatcher" %}
+{% set version = "0.1.0" %}
+
+
+
+package:
+name: "{{ name|lower }}"
+version: "{{ version }}"
+
+
+
+source:
+git-url: "https://github.com/GES-compchem/{{ name }}"
+url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
+sha256: 8bd26050e73c01c5bab195369d7b3dfd9b765791acdfca97059102d4178466d2
+
+
+
+build:
+number: 0
+script: "{{ PYTHON }} -m pip install . -vv"
+
+
+
+requirements:
+host:
+- matplotlib
+- numpy
+- pandas
+- pip
+- python
+- scipy
+run:
+- matplotlib
+- numpy
+- pandas
+- python
+- scipy
+
+
+
+test:
+imports:
+- cellcycling
+
+
+
+about:
+home: The package home page
+license: UNKNOWN
+license_family: OTHER
+license_file:
+summary: ""
+doc_url:
+dev_url:
+
+
+
+extra:
+recipe-maintainers:
+- your-github-id-here
