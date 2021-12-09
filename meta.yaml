@@ -1,61 +1,51 @@
-{% set name = "job-dispatcher" %}
+{% set name = "jobdispatcher" %}
 {% set version = "0.1.0" %}
 
 
 
 package:
-name: "{{ name|lower }}"
-version: "{{ version }}"
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
 
 
 
 source:
-git-url: "https://github.com/GES-compchem/{{ name }}"
-url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
-sha256: 8bd26050e73c01c5bab195369d7b3dfd9b765791acdfca97059102d4178466d2
+  url: https://github.com/GES-compchem/job-dispatcher/archive/refs/tags/0.1.0-alpha.tar.gz
+
 
 
 
 build:
-number: 0
-script: "{{ PYTHON }} -m pip install . -vv"
+  number: 0
 
 
 
 requirements:
-host:
-- matplotlib
-- numpy
-- pandas
-- pip
-- python
-- scipy
-run:
-- matplotlib
-- numpy
-- pandas
-- python
-- scipy
+  host:
+    - python
+
+  run:
+    - python
 
 
 
 test:
-imports:
-- cellcycling
+  imports:
+    - jobdispatcher
 
 
 
 about:
-home: The package home page
-license: UNKNOWN
-license_family: OTHER
-license_file:
-summary: ""
-doc_url:
-dev_url:
+  home: The package home page
+  license: UNKNOWN
+  license_family: OTHER
+  license_file:
+  summary: ""
+  doc_url:
+  dev_url:
 
 
 
 extra:
-recipe-maintainers:
-- your-github-id-here
+  recipe-maintainers:
+    - GES-compchem
