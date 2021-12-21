@@ -1,5 +1,5 @@
-{% set name = "jobdispatcher" %}
-{% set version = "0.1.0" %}
+{% set name = "job-dispatcher" %}
+{% set version = "0.1.3" %}
 
 
 
@@ -10,29 +10,23 @@ package:
 
 
 source:
-  url: https://github.com/GES-compchem/job-dispatcher/archive/refs/tags/0.1.0-alpha.tar.gz
+  url: https://github.com/GES-compchem/{{ name }}/archive/refs/tags/{{ version }}.zip
 
 
 
 
 build:
+  noarch: python
   number: 0
 
 
 
 requirements:
   host:
-    - python
+    - python>=3.8
 
   run:
-    - python
-
-
-
-test:
-  imports:
-    - jobdispatcher
-
+    - python>=3.8
 
 
 about:

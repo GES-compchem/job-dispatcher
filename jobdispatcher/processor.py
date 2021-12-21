@@ -6,18 +6,16 @@ Created on Fri Nov 19 12:40:18 2021
 @author: mpalermo
 """
 
-import queue
 from multiprocessing import Process, current_process, active_children, Manager
 import os
 import sys
-import gc
 import time
 import traceback
 
 from typing import Callable, List
 
 
-class JobProcessor:
+class JobDispatcher:
     """Queue any number of different functions and execute them in parallel."""
 
     def __init__(
