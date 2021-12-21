@@ -5,7 +5,6 @@ Created on Fri Nov 19 12:40:18 2021
 
 @author: mpalermo
 """
-
 from multiprocessing import Process, current_process, active_children, Manager
 import os
 import sys
@@ -24,7 +23,6 @@ class JobDispatcher:
 
         # Set maximum total number of cores used. If user does not provide it,
         # just deduce from os settings
-
         self.maxcores: int
 
         if maxcores == -1:
@@ -77,7 +75,7 @@ class JobDispatcher:
             result: object = user_function()  # run function and catch output
             results_queue.put(result)  # store the result in queue
             print(
-                f"Elapsed time for job {current_process().name}: {time.process_time() - t}"
+                f"Elapsed time for job {current_process().name}: {(time.process_time() - t)}"
             )
 
         return decorated_function
@@ -92,6 +90,7 @@ class JobDispatcher:
 
     def run(self) -> List:
         """Run jobs in the job list."""
+        
 
         if self.number_of_jobs is None:
             print("No jobs to process")
@@ -105,7 +104,9 @@ class JobDispatcher:
         job_counter: int = 0
 
         while True:
-            used_cores = len(active_children()) * self.cores_per_job
+            # 1 core is occupied by the main process
+            used_cores = 1 + ((len(active_children())-1) * self.cores_per_job)
+
             # Check if adding a new job would exceed the available num of cores
             if used_cores + self.cores_per_job <= self.maxcores:
                 try:
@@ -129,11 +130,21 @@ class JobDispatcher:
                 except Exception as error:
                     traceback.print_exc()
                     print("An exception has been caught.")
-                    break
+                    pass
 
         dump: List = []
 
         for _ in range(self.number_of_jobs):
             dump.append(self._results_queue.get())
-
+        
+        # For some reason, after jobs have finished, the SyncManager object remains
+        # active, and this is a problem in an interactive python shell because
+        # the active children count is then flawed. This makes sure the Syncmanager
+        # object is terminated.        
+        
+        for process in active_children():
+            if "SyncManager" in process.name:
+                process.terminate()
+            
         return dump
+
