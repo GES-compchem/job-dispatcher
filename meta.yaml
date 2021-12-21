@@ -1,5 +1,5 @@
 {% set name = "job-dispatcher" %}
-{% set version = "0.1.43" %}
+{% set version = "0.1.4" %}
 
 
 
