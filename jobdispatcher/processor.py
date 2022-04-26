@@ -85,6 +85,7 @@ class JobDispatcher:
 
         def decorated_function(results_queue) -> None:
             """Decorate function to be returned."""
+            tt = time.time()
             t = time.process_time()
 
             os.environ["OMP_NUM_THREADS"] = str(
@@ -93,7 +94,7 @@ class JobDispatcher:
             result: object = user_function(*args, **kwargs)  # run function and catch output
             results_queue.put(result)  # store the result in queue
             print(
-                f"Elapsed time for job {current_process().name}: {(time.process_time() - t)}"
+                f"Elapsed time for job {current_process().name}: {(time.process_time() - t)}, {time.time() - tt}"
             )
 
         return decorated_function
@@ -121,11 +122,11 @@ class JobDispatcher:
             print("No jobs to process")
             sys.exit()
             
-        if (self.number_of_jobs*self.cores_per_job)+1 > self.maxcores:
-            raise RuntimeError(f"The total number of requested cores {(self.number_of_jobs*self.cores_per_job)+1}"
-                               f" is exceeding the maxcore limit of {self.maxcores}."
-                               "\n Please remember to take into account that "
-                               "1 core must be left free for the parent thread.")
+        # if (self.number_of_jobs*self.cores_per_job)+1 > self.maxcores:
+        #     raise RuntimeError(f"The total number of requested cores {(self.number_of_jobs*self.cores_per_job)+1}"
+        #                        f" is exceeding the maxcore limit of {self.maxcores}."
+        #                        "\n Please remember to take into account that "
+        #                        "1 core must be left free for the parent thread.")
 
         print(
             f"Running {self.number_of_jobs} jobs on {self.maxcores} cores,"
