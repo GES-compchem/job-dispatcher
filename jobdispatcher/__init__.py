@@ -1,1 +1,1 @@
-from jobdispatcher.processor import JobDispatcher
+from jobdispatcher.processor import JobDispatcher, Job
