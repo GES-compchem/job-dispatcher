@@ -86,6 +86,11 @@ class JobDispatcher:
         # just deduce from os settings
         self.maxcores: int
 
+        if not isinstance(maxcores, int):
+            raise TypeError("maxcores must be an integer number")
+        if not isinstance(cores_per_job, int):
+            raise TypeError("cores_per_job must be an integer number")
+
         available_cores = len(os.sched_getaffinity(0))
 
         if maxcores <= 0:
@@ -93,7 +98,7 @@ class JobDispatcher:
             logger.debug(
                 f"Total core count from os.sched_getaffinity(0): {available_cores}"
             )
-        if maxcores > available_cores:
+        elif maxcores > available_cores:
             self.maxcores = maxcores
             logger.warning(
                 f"Requested maximum number of cores ({maxcores}) exceeds system"
@@ -101,11 +106,6 @@ class JobDispatcher:
             )
         else:
             self.maxcores = maxcores
-
-        if not all((isinstance(self.maxcores, int), self.maxcores > 0)):
-            raise TypeError("maxcores must be a positive integer")
-        if not isinstance(cores_per_job, int):
-            raise TypeError("cores_per_job must be an integer number")
 
         self.cores_per_job: int = cores_per_job  # number of cores used per job
 
@@ -190,7 +190,8 @@ class JobDispatcher:
 
         if job.cores >= self.maxcores:
             raise ValueError(
-                f"Job {job.name} ({job.cores} cores) exceedes the assigned resources."
+                f"Job {job.name} ({job.cores} cores) exceedes the assigned"
+                f" resources ({self.maxcores} cores)."
             )
 
     def add(self, job: Job):
