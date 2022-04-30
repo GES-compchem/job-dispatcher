@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name="job-dispatcher",
-    version="0.1.6",
+    version="0.1.7",
     description="",
     long_description="",
     packages=["jobdispatcher"],
