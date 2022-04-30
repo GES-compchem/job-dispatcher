@@ -5,18 +5,25 @@ Created on Fri Nov 19 12:40:18 2021
 
 @author: mpalermo
 """
-from multiprocessing import Process, current_process, active_children, Manager
+from multiprocessing import (
+    Process,
+    active_children,
+    Manager,
+    Queue,
+)
 import os
 import sys
 import time
 from dataclasses import dataclass, field
+from queue import Empty
+
 import logging
 import copy
 
 from typing import Callable, List, Dict, Any
 
-from packing.to_constant_volume import to_constant_volume
-from packing.chunker import chunker
+from jobdispatcher.packing.to_constant_volume import to_constant_volume
+from jobdispatcher.packing.chunker import chunker
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +46,32 @@ class Job:
     function: Callable
     arguments: List[Any] = field(default_factory=list)
     keyword_arguments: Dict[str, Any] = field(default_factory=dict)
-    cores: int = 1
+    cores: int
+    _cores: int = field(init=False, repr=False, default=1)
     _dispatcher_id = None
+    _cores_override = False
+    _dispatcher_cores = None
+
+    @property
+    def cores(self):
+        """ Number of cores used by the job.
+
+        Returns
+        -------
+        int
+            Number of cores.
+
+        """
+        if self._cores_override is True:
+            return self._dispatcher_cores
+        return self._cores
+
+    @cores.setter
+    def cores(self, value):
+        if type(value) is property:
+            # initial value not specified, use default
+            value = Job._cores
+        self._cores = value
 
 
 class JobDispatcher:
@@ -49,25 +80,34 @@ class JobDispatcher:
     def __init__(
         self, jobs_list: List[Job], maxcores: int = -1, cores_per_job: int = -1
     ):
-
+        logger.debug("-----Starting JobDispatcher object initialization.-----")
+        logger.debug(f"Object: (id{self})")
         # Set maximum total number of cores used. If user does not provide it,
         # just deduce from os settings
         self.maxcores: int
 
-        if maxcores == -1:
-            self.maxcores = len(os.sched_getaffinity(0))
+        available_cores = len(os.sched_getaffinity(0))
+
+        if maxcores <= 0:
+            self.maxcores = available_cores
             logger.debug(
-                f"Total core count from os.sched_getaffinity(0): {self.maxcores}"
+                f"Total core count from os.sched_getaffinity(0): {available_cores}"
+            )
+        if maxcores > available_cores:
+            self.maxcores = maxcores
+            logger.warning(
+                f"Requested maximum number of cores ({maxcores}) exceeds system"
+                f" resources ({available_cores}). I hope you know what you're doing."
             )
         else:
             self.maxcores = maxcores
 
-        self.cores_per_job: int = cores_per_job  # number of cores used per job
-
         if not all((isinstance(self.maxcores, int), self.maxcores > 0)):
             raise TypeError("maxcores must be a positive integer")
-        # if not all((isinstance(cores_per_job, int), cores_per_job > 0)):
-        #     raise TypeError("cores_per_job must be a positive integer")
+        if not isinstance(cores_per_job, int):
+            raise TypeError("cores_per_job must be an integer number")
+
+        self.cores_per_job: int = cores_per_job  # number of cores used per job
 
         for job in jobs_list:
             self._is_it_job(job)
@@ -77,6 +117,8 @@ class JobDispatcher:
         self.number_of_jobs: int = len(jobs_list)
 
         self._results_queue: Manager().Queue()
+
+        self._completed_processes: Manager().Queue()
 
     def _job_completion_tracker(self, job: Job) -> Callable:
         """
@@ -101,6 +143,7 @@ class JobDispatcher:
         args = job.arguments
         kwargs = job.keyword_arguments
         cores = job.cores
+        job_counter = job._dispatcher_id
 
         if self.cores_per_job < 0 and cores is not None:
             pass
@@ -109,19 +152,18 @@ class JobDispatcher:
         else:
             cores = 1
 
-        def decorated_function(results_queue) -> None:
+        def decorated_function(results_queue, completed_queue) -> None:
             """Decorate function to be returned."""
             start_time = time.time()
 
             os.environ["OMP_NUM_THREADS"] = str(cores)  # set maximum cores per job
 
-            job_counter = current_process().name
-
             logger.debug(f"Starting job {job_name}")
             result: object = user_function(
                 *args, **kwargs
             )  # run function and catch output
-            results_queue.put((job_name, result))  # store the result in queue
+            results_queue.put_nowait((job_name, result))  # store the result in queue
+            completed_queue.put(job_counter)
             total_time = time.time() - start_time
             logger.info(
                 f"Elapsed time for job #{job_counter} - {job_name}: {total_time} s, "
@@ -140,6 +182,17 @@ class JobDispatcher:
                 " it to JobDispatcher."
             )
 
+        if self.cores_per_job > 0:
+            job._cores_override = True
+            job._dispatcher_cores = self.cores_per_job
+        else:
+            job._cores_override = False
+
+        if job.cores >= self.maxcores:
+            raise ValueError(
+                f"Job {job.name} ({job.cores} cores) exceedes the assigned resources."
+            )
+
     def add(self, job: Job):
         """Add a new job to the job list.
 
@@ -156,89 +209,145 @@ class JobDispatcher:
         self.jobs_list.append(job)
 
     def _job_balancer(self, running_jobs_list, working_job_list):
-
         job_cores = sum([job.cores for job in running_jobs_list]) + 1
 
         if job_cores == self.maxcores:
             return []
 
-        #if running_job_lists empty, do packing
-        if running_jobs_list
-        # else find first available job
+        # else find available jobs
 
         free_cores = self.maxcores - job_cores
 
+        if free_cores < 0:
+            raise ValueError(
+                "DEV: Negative umber of free cores. Faulty code logic should be inspected."
+            )
+
+        # logger.debug(
+        #     f"Balancing when {free_cores} out of {self.maxcores} are available."
+        # )
+
+        # first try finding a job that has the same exact number of cores
         for index, job in enumerate(working_job_list):
             if job.cores == free_cores:
+                jobs = [working_job_list.pop(index)]
+                logger.debug(f"Adding job {jobs[0].name} ({jobs[0].cores} cores)")
+                return jobs
+
+        # otherwise resort to packing...
+        working_length = len(working_job_list)
+        for start, end in chunker(working_length):
+            if end is None:
+                end = working_length
+            packing_dict = tuple(
+                (index, working_job_list[index].cores) for index in range(start, end)
+            )
+
+            packs = to_constant_volume(packing_dict, free_cores, weight_pos=1)
+
+            for pack in packs:
+                cores = sum(job[1] for job in pack)
+
+                if cores <= free_cores:
+                    # print(f"Free cores are {free_cores}, I'm going to add {cores}")
+                    indexes = [job[0] for job in pack]
+                    jobs = []
+
+                    # everytime we remove an item from the list, all the indexes
+                    # decrease by one, so we have to follow them :)
+                    for index in sorted(indexes, reverse=True):
+                        job = working_job_list.pop(index)
+                        jobs.append(job)
+                        logger.debug(f"Adding job {job.name} ({job.cores} cores)")
+                    return jobs
+
+        else:
+            # if we found nothing, let's wait for some job to finish
+            return []
+
+    def _update_running_jobs_list(self, candidate_jobs_list):
+        """Also returns completed jobs"""
+        completed_ids = []
+        completed_jobs = []
+        elements = len(candidate_jobs_list)
+
+        while True:
+            try:
+                ids = self._completed_processes.get_nowait()
+                completed_ids.append(ids)
+            except Empty:
                 break
 
-        return working_job_list.pop(index)
+        candidates_id_toremove = []
+
+        for i in range(elements):
+            if candidate_jobs_list[i]._dispatcher_id in completed_ids:
+                candidates_id_toremove.append(i)
+
+        for i in sorted(candidates_id_toremove, reverse=True):
+            job = candidate_jobs_list.pop(i)
+            completed_jobs.append(job)
+
+        return completed_jobs
 
     def run(self) -> List:
         """Run jobs in the job list."""
+        logger.debug("-----Starting JobDispatcher logging at DEBUG level------")
+
         # Clean up zombie processes left running from previous Runtime errors
         for process in active_children():
             if "SyncManager" in process.name:
                 logger.debug("Rogue SyncManager found. Killing it.")
                 process.terminate()
 
-        self._results_queue = Manager().Queue()
+        # self._results_queue = Manager().Queue()
+        # self._completed_processes = Manager().Queue()
+
+        self._results_queue = Queue()
+        self._completed_processes = Queue()
 
         if self.number_of_jobs == 0:
             logger.info("No jobs to process. To add a new job, use the add method.")
             sys.exit()
 
-        logger.info(
-            f"Running {self.number_of_jobs} jobs on {self.maxcores} cores,"
-            f" {self.cores_per_job} cores per job"
-        )
+        logger.info(f"Running {self.number_of_jobs} jobs")
+        logger.info(f"Requested cores: {self.maxcores} cores")
 
         job_counter: int = 0
 
         working_job_list = copy.copy(self.jobs_list)
         running_jobs_list = []
+        completed_jobs_list = []
+
+        timer = time.perf_counter()
 
         while working_job_list:
-            time.sleep(0.1)  # lets not stress the CPU...
+            completed_jobs_list += self._update_running_jobs_list(running_jobs_list)
+
             new_jobs = self._job_balancer(running_jobs_list, working_job_list)
+
+            time.sleep(0.002)  # lets not stress the CPU, Queue.get is slow anyway
 
             for job in new_jobs:
                 # run jobs
-                pass
+                job_counter += 1
+                job._dispatcher_id = job_counter
+                decorated_job: Callable = self._job_completion_tracker(job)
+                worker: Process = Process(
+                    name=str(job_counter),
+                    target=decorated_job,
+                    args=(self._results_queue, self._completed_processes),
+                )
+                running_jobs_list.append(job)
+                worker.start()  # start job
 
-            # 1 core is occupied by the main process
-            used_cores = 1 + ((len(active_children()) - 1) * self.cores_per_job)
+        while len(completed_jobs_list) != len(self.jobs_list):
+            completed_jobs_list += self._update_running_jobs_list(running_jobs_list)
 
-            # Check if adding a new job would exceed the available num of cores
-            if used_cores + self.cores_per_job <= self.maxcores:
-                try:
-                    job = self.jobs_list.pop()  # get job from queue
-                    job_counter += 1
-                    logger.debug(
-                        f"Adding job  #{job_counter} when {used_cores} cores were used."
-                    )
-                    # function, args, kwargs = job.function, job.arguments, job.keyword_arguments
-                    decorated_job: Callable = self._job_completion_tracker(job)
-                    worker: Process = Process(
-                        name=str(job_counter),
-                        target=decorated_job,
-                        args=(self._results_queue,),
-                    )
-                    worker.start()  # start job
-
-                except IndexError:
-                    # Check if there are no more jobs to run
-                    if self._results_queue.qsize() == self.number_of_jobs:
-                        logger.info("--- No more jobs to execute ---")
-                        break
-
-                except Exception as error:
-                    logger.critical(
-                        f"Critical error encountered while trying to start job n° {job_counter}"
-                    )
-                    logger.critical(error, exc_info=True)
-
-        # dump: List = []
+        elapsed = time.perf_counter() - timer
+        logger.info(
+            f"Jobs completed in {elapsed} s, average of {elapsed/self.number_of_jobs} s/job."
+        )
 
         dump: Dict = {}
 
