@@ -9,7 +9,6 @@ from multiprocessing import Process, current_process, active_children, Manager
 import os
 import sys
 import time
-import traceback
 from dataclasses import dataclass, field
 import logging
 
@@ -37,12 +36,13 @@ class Job:
     function : Callable
     arguments : List[Any] = field(default_factory=list)
     keyword_arguments : Dict[str, Any] = field(default_factory=dict)
+    cores : int = 1
 
 class JobDispatcher:
     """Queue any number of different functions and execute them in parallel."""
 
     def __init__(
-        self, jobs_list: List[Job], maxcores: int = -1, cores_per_job: int = 1
+        self, jobs_list: List[Job], maxcores: int = -1, cores_per_job: int = -1
     ):
 
         # Set maximum total number of cores used. If user does not provide it,
@@ -59,8 +59,8 @@ class JobDispatcher:
 
         if not all((isinstance(self.maxcores, int), self.maxcores > 0)):
             raise TypeError("maxcores must be a positive integer")
-        if not all((isinstance(cores_per_job, int), cores_per_job > 0)):
-            raise TypeError("cores_per_job must be a positive integer")
+        # if not all((isinstance(cores_per_job, int), cores_per_job > 0)):
+        #     raise TypeError("cores_per_job must be a positive integer")
 
         for job in jobs_list:
             self._is_it_job(job)
@@ -71,7 +71,7 @@ class JobDispatcher:
 
         self._results_queue : Manager().Queue()
 
-    def _job_completion_tracker(self, user_function: Callable, args, kwargs) -> Callable:
+    def _job_completion_tracker(self, job: Job) -> Callable:
         """
         Take user function and decorate it by setting the number of cores
         available to the jobs, gather the results in a common queue and update
@@ -89,21 +89,36 @@ class JobDispatcher:
             .
 
         """
+        job_name = job.name
+        user_function = job.function
+        args = job.arguments
+        kwargs = job.keyword_arguments
+        cores = job.cores
+
+        
+        if self.cores_per_job < 0 and cores is not None:
+            pass
+        elif self.cores_per_job > 0:
+            cores = self.cores_per_job
+        else:
+            cores = 1
 
         def decorated_function(results_queue) -> None:
             """Decorate function to be returned."""
             t = time.time()
 
             os.environ["OMP_NUM_THREADS"] = str(
-                self.cores_per_job
+                cores
             )  # set maximum cores per job
             
-            job_name = current_process().name
+            job_counter = current_process().name
             
             logger.debug(f"Starting job {job_name}")
             result: object = user_function(*args, **kwargs)  # run function and catch output
             results_queue.put((job_name, result))  # store the result in queue
-            logger.info(f"Elapsed time for job {current_process().name}: {time.time() - t} seconds")
+            total_time = time.time() - t
+            logger.info(f"Elapsed time for job #{job_counter} - {job_name}: {total_time} s, "
+                        f"{total_time/cores} s/core on {cores} cores. ")
 
         return decorated_function
 
@@ -158,9 +173,9 @@ class JobDispatcher:
                 try:          
                     job = self.jobs_list.pop()  # get job from queue
                     job_counter += 1
-                    logger.debug(f"Adding job n°: {job_counter} when {used_cores} cores were used.")
-                    function, args, kwargs = job.function, job.arguments, job.keyword_arguments
-                    decorated_job: Callable = self._job_completion_tracker(function, args, kwargs)
+                    logger.debug(f"Adding job  #{job_counter} when {used_cores} cores were used.")
+                    #function, args, kwargs = job.function, job.arguments, job.keyword_arguments
+                    decorated_job: Callable = self._job_completion_tracker(job)
                     worker: Process = Process(
                         name=str(job_counter),
                         target=decorated_job,
