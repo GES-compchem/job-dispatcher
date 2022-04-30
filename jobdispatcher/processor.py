@@ -11,8 +11,12 @@ import sys
 import time
 from dataclasses import dataclass, field
 import logging
+import copy
 
 from typing import Callable, List, Dict, Any
+
+from packing.to_constant_volume import to_constant_volume
+from packing.chunker import chunker
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +40,7 @@ class Job:
     arguments: List[Any] = field(default_factory=list)
     keyword_arguments: Dict[str, Any] = field(default_factory=dict)
     cores: int = 1
+    _dispatcher_id = None
 
 
 class JobDispatcher:
@@ -150,6 +155,25 @@ class JobDispatcher:
         self._is_it_job(job)
         self.jobs_list.append(job)
 
+    def _job_balancer(self, running_jobs_list, working_job_list):
+
+        job_cores = sum([job.cores for job in running_jobs_list]) + 1
+
+        if job_cores == self.maxcores:
+            return []
+
+        #if running_job_lists empty, do packing
+        if running_jobs_list
+        # else find first available job
+
+        free_cores = self.maxcores - job_cores
+
+        for index, job in enumerate(working_job_list):
+            if job.cores == free_cores:
+                break
+
+        return working_job_list.pop(index)
+
     def run(self) -> List:
         """Run jobs in the job list."""
         # Clean up zombie processes left running from previous Runtime errors
@@ -171,7 +195,17 @@ class JobDispatcher:
 
         job_counter: int = 0
 
-        while True:
+        working_job_list = copy.copy(self.jobs_list)
+        running_jobs_list = []
+
+        while working_job_list:
+            time.sleep(0.1)  # lets not stress the CPU...
+            new_jobs = self._job_balancer(running_jobs_list, working_job_list)
+
+            for job in new_jobs:
+                # run jobs
+                pass
+
             # 1 core is occupied by the main process
             used_cores = 1 + ((len(active_children()) - 1) * self.cores_per_job)
 
