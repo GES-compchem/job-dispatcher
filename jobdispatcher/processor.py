@@ -21,8 +21,10 @@ import copy
 
 from typing import Callable, List, Dict, Any
 
-from jobdispatcher.packing.to_constant_volume import to_constant_volume
-from jobdispatcher.packing.chunker import chunker
+# from jobdispatcher.packing.to_constant_volume import to_constant_volume
+# from jobdispatcher.packing.chunker import chunker
+
+from jobdispatcher.job_balancers import JobBalancer
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +121,7 @@ class JobDispatcher:
 
         self._completed_processes: Manager().Queue()
 
-        self._last_state = None
+        self._job_balancer = JobBalancer(self.maxcores)
 
     def _job_completion_tracker(self, job: Job) -> Callable:
         """
@@ -175,7 +177,6 @@ class JobDispatcher:
 
     def _is_it_job(self, job: Callable) -> None:
         """Check if the input job is a function."""
-
         if not isinstance(job, Job):
             raise TypeError(
                 f"The provided job \x1b[1;37;34m{job}\x1b[0m is not an instance"
@@ -210,116 +211,7 @@ class JobDispatcher:
         """
         self._is_it_job(job)
         self.jobs_list.append(job)
-
-    def _job_balancer(self, running_jobs_list, working_job_list):
-        job_cores = sum([job.cores for job in running_jobs_list]) + 1
-
-        if job_cores == self.maxcores:
-            return []
-
-        # else find available jobs
-
-        free_cores = self.maxcores - job_cores
-
-        if free_cores < 0:
-            raise ValueError(
-                "DEV: Negative umber of free cores. Faulty code logic should be inspected."
-            )
-
-        if self._last_state is None:
-            pass
-        elif free_cores == self._last_state:
-            return []
-
-        logger.debug(f"----- In _job_balancer: {free_cores} CORES NEEDED -----")
-
-        # first try finding a job that has the same exact number of cores
-        for index, job in enumerate(working_job_list):
-            if job.cores == free_cores:
-                jobs = [working_job_list.pop(index)]
-                logger.debug(f'Adding job "{jobs[0].name}" ({jobs[0].cores} cores)')
-                logger.debug("----- Rebalacing with single job -----")
-                logger.debug(
-                    f"----- BALANCER OUTPUT: Using "
-                    f"{self.maxcores-free_cores+job.cores}/{self.maxcores} cores"
-                )
-                self._last_state = None
-                return jobs
-
-        # otherwise resort to packing...
-        working_length = len(working_job_list)
-        logging.debug("----- Rebalancing through BIN PACKING ----")
-
-        chunk_counter = 1
-
-        for start, end in chunker(working_length):
-            logger.debug(f"BIN PACKING: Exploring chunk {chunk_counter}")
-            chunk_counter += 1  # not pythonic but enumerate would be unreadable
-
-            if end is None:
-                end = working_length
-            packing_dict = tuple(
-                (index, working_job_list[index].cores) for index in range(start, end)
-            )
-
-            packs = to_constant_volume(packing_dict, free_cores, weight_pos=1,)
-
-            # Sometimes the fullest pack is not at the forefront, let's reorder
-            def sorting_func(pack):
-                cores = sum(job[1] for job in pack)
-
-                if cores > free_cores:
-                    cores = 0
-
-                return cores
-
-            # new version
-
-            sorted_packs = sorted(packs, key=sorting_func, reverse=True)
-
-            cores = sum(job[1] for job in sorted_packs[0])
-
-            if cores > free_cores:
-                logger.debug(
-                    f"BIN PACKING: Picked pack has {cores} cores when "
-                    f"{free_cores} cores are free. Retrying."
-                )
-                self._last_state = free_cores
-                continue
-            self._last_state = None
-
-            logger.debug(
-                f"BIN PACKING: Picked pack has {cores} cores when {free_cores}"
-                f" cores are free. {free_cores-cores} cores unused."
-            )
-
-            # We are going to consider only the first pack of jobs, as the
-            # sorting function orders from the pack with the highest number of
-            # cores WITHIN free_cores, followed by packs with less cores and,
-            # at the end of the list, the packs that exceeds free_cores
-            indexes = [job[0] for job in sorted_packs[0]]
-            jobs = []
-
-            # everytime we remove an item from the list, all the indexes
-            # decrease by one, so we have to follow them :)
-            for index in sorted(indexes, reverse=True):
-                job = working_job_list.pop(index)
-                jobs.append(job)
-                logger.debug(
-                    f'BIN PACKING: Adding job "{job.name}" ({job.cores} cores)'
-                )
-            logger.debug(
-                f"----- BALANCER OUTPUT: Using "
-                f"{self.maxcores-free_cores+cores}/{self.maxcores} cores -----"
-            )
-            return jobs
-
-        logger.debug(
-            f"----- BALANCER OUTPUT: No solution found. Retrying. "
-            f"{self.maxcores-free_cores}/{self.maxcores} cores -----"
-        )
-
-        return []
+        self.number_of_jobs += 1
 
     def _update_running_jobs_list(self, candidate_jobs_list):
         """Also returns completed jobs"""
@@ -371,16 +263,18 @@ class JobDispatcher:
 
         job_counter: int = 0
 
-        working_job_list = copy.copy(self.jobs_list)
+        candidate_jobs_list = copy.copy(self.jobs_list)
         running_jobs_list = []
         completed_jobs_list = []
 
         timer = time.perf_counter()
 
-        while working_job_list:
+        while candidate_jobs_list:
             completed_jobs_list += self._update_running_jobs_list(running_jobs_list)
+            
+            unavailable_cores = sum([job.cores for job in running_jobs_list]) + 1
 
-            new_jobs = self._job_balancer(running_jobs_list, working_job_list)
+            new_jobs = self._job_balancer.run(unavailable_cores, candidate_jobs_list)
 
             time.sleep(0.002)  # lets not stress the CPU, Queue.get is slow anyway
 
