@@ -166,10 +166,10 @@ class JobBalancer():
             )
             
             break
-
-        logger.debug(
-            f"----- BALANCER OUTPUT: No solution found. Retrying. "
-            f"{self.maxcores-free_cores}/{self.maxcores} cores -----"
-        )
+        else:
+            logger.debug(
+                f"----- BALANCER OUTPUT: No solution found. Retrying. "
+                f"{self.maxcores-free_cores}/{self.maxcores} cores -----"
+            )
 
         return jobs_to_be_run    
