@@ -124,5 +124,7 @@ class JobDispatcher:
             new_jobs = job_balancer.run(used_cores, candidate_jobs_list)
             engine.add_jobs(new_jobs)
             engine.run()
-            
+        
         self.results = engine.finalize()
+        
+        return self.results 
