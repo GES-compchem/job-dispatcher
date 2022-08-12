@@ -65,8 +65,12 @@ class JobDispatcher:
 
         if engine == "multiprocessing":
             self._engine = MultiprocessEngine(cores_per_job=cores_per_job)
-        else:
+        elif engine == "multithreading":
             self._engine = MultithreadEngine(cores_per_job=cores_per_job)
+        else:
+            raise ValueError(
+                f"""Jobdispatcher engine argument accepts either "multiprocessing" or "multithreading" keywords. Instead, "{engine}" was provided."""
+            )
 
         self.results = {}
 
@@ -128,11 +132,13 @@ class JobDispatcher:
 
         while candidate_jobs_list:
             used_cores = engine.used_cores
-            print("********** USED CORES: ", used_cores, "***********")
             new_jobs = job_balancer.run(used_cores, candidate_jobs_list)
             engine.add_jobs(new_jobs)
             engine.run()
-            time.sleep(1)
+
+            # in multithreading sleep is fundamental, otherwise all the resources will be
+            # taken by this while loop and other threads will be super slow!
+            time.sleep(0.01)
 
         self.results = engine.results
 
