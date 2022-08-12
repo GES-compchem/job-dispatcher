@@ -9,7 +9,7 @@ Created on Sat Apr 30 16:13:16 2022
 
 def chunker(list_lenght, chunk_size=100, limiter=2):
     """
-    Generator function that returns 
+    Generator function that returns.
 
     Parameters
     ----------
@@ -34,7 +34,6 @@ def chunker(list_lenght, chunk_size=100, limiter=2):
 
     results = {}
 
-
     # find if any number between chunk size and upper bound is a divisor of the input number
     # remainders for any tentative chunk_size is saved in results dictionary
     for tentative_chunk in range(chunk_size, upper_bound):
@@ -42,8 +41,8 @@ def chunker(list_lenght, chunk_size=100, limiter=2):
         if remainder == 0:
             splitter = tentative_chunk
             break
-        else:
-            results[remainder] = tentative_chunk
+
+        results[remainder] = tentative_chunk
 
     else:
         # if no divisor is found, take the tentative chunk size with the biggest reminder!
@@ -52,7 +51,7 @@ def chunker(list_lenght, chunk_size=100, limiter=2):
     # print(splitter, list_lenght % splitter, list_lenght // splitter)
 
     starting_slicer = 0
-    
+
     # generator that yields starting and final indexes of the chunks
     while starting_slicer < list_lenght:
         end_slicer = starting_slicer + splitter

@@ -8,6 +8,7 @@ Created on Fri Aug 12 11:02:24 2022
 from dataclasses import dataclass, field
 from typing import Callable, List, Any, Dict
 
+
 @dataclass
 class Job:
     """Represent a job as a function and its arguments.
@@ -33,7 +34,7 @@ class Job:
     _dispatcher_cores = None
 
     @property
-    def cores(self):
+    def cores(self):  # pylint: disable=E0102
         """ Number of cores used by the job.
 
         Returns
@@ -47,8 +48,24 @@ class Job:
         return self._cores
 
     @cores.setter
-    def cores(self, value):
-        if type(value) is property:
+    def cores(self, cores):
+        if isinstance(cores, property):
             # initial value not specified, use default
-            value = Job._cores
-        self._cores = value
+            cores = Job._cores
+        self._cores = cores
+
+    @property
+    def dispatcher_cores(self):
+        return self._dispatcher_cores
+
+    @dispatcher_cores.setter
+    def dispatcher_cores(self, value):
+        self._dispatcher_cores = value
+
+    @property
+    def cores_override(self):
+        return self._cores_override
+
+    @cores_override.setter
+    def cores_override(self, override=False):
+        self._cores_override = override

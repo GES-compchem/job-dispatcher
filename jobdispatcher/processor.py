@@ -11,9 +11,10 @@ import sys
 import logging
 import copy
 from typing import List, Callable
+import time
 
 from jobdispatcher.job_balancers import JobBalancer
-from jobdispatcher.engines import MultithreadedEngine
+from jobdispatcher.engines import MultithreadEngine, MultiprocessEngine
 from jobdispatcher.jobs import Job
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,11 @@ class JobDispatcher:
     """Queue any number of different functions and execute them in parallel."""
 
     def __init__(
-        self, jobs_list: List[Job], maxcores: int = -1, cores_per_job: int = -1
+        self,
+        jobs_list: List[Job],
+        maxcores: int = -1,
+        cores_per_job: int = -1,
+        engine="multiprocessing",
     ):
         logger.debug("-----Starting JobDispatcher object initialization.-----")
         logger.debug(f"Object: ({self})")
@@ -57,10 +62,14 @@ class JobDispatcher:
         self.number_of_jobs: int = len(jobs_list)
 
         self._job_balancer = JobBalancer(self.maxcores)
-        self._engine = MultithreadedEngine(cores_per_job=cores_per_job)
+
+        if engine == "multiprocessing":
+            self._engine = MultiprocessEngine(cores_per_job=cores_per_job)
+        else:
+            self._engine = MultithreadEngine(cores_per_job=cores_per_job)
+
         self.results = {}
-        
-        
+
         for job in jobs_list:
             self._is_it_job(job)
 
@@ -74,11 +83,11 @@ class JobDispatcher:
                 " it to JobDispatcher."
             )
 
-        if self._engine._cores_per_job > 0:
-            job._cores_override = True
-            job._dispatcher_cores = self._engine._cores_per_job
+        if self._engine.cores_per_job > 0:
+            job.cores_override = True
+            job.dispatcher_cores = self._engine.cores_per_job
         else:
-            job._cores_override = False
+            job.cores_override = False
 
         if job.cores >= self.maxcores:
             raise ValueError(
@@ -102,29 +111,29 @@ class JobDispatcher:
         self.jobs_list.append(job)
         self.number_of_jobs += 1
 
-
-
     def run(self):
         """Run jobs in the job list."""
         logger.debug("-----Starting JobDispatcher logging at DEBUG level------")
-        
+
         if self.number_of_jobs == 0:
             logger.info("No jobs to process. To add a new job, use the add method.")
             sys.exit()
 
         logger.info(f"Running {self.number_of_jobs} jobs")
         logger.info(f"Requested cores: {self.maxcores} cores")
-        
+
         candidate_jobs_list = copy.copy(self.jobs_list)
         job_balancer = self._job_balancer
         engine = self._engine
-        
+
         while candidate_jobs_list:
-            used_cores = engine.used_cores()
+            used_cores = engine.used_cores
+            print("********** USED CORES: ", used_cores, "***********")
             new_jobs = job_balancer.run(used_cores, candidate_jobs_list)
             engine.add_jobs(new_jobs)
             engine.run()
-        
-        self.results = engine.finalize()
-        
-        return self.results 
+            time.sleep(1)
+
+        self.results = engine.results
+
+        return self.results
