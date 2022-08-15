@@ -13,6 +13,8 @@ import copy
 from typing import List, Callable
 import time
 
+
+from multiprocessing import Manager
 from jobdispatcher.job_balancers import JobBalancer
 from jobdispatcher.engines import MultithreadEngine, MultiprocessEngine
 from jobdispatcher.jobs import Job
@@ -126,20 +128,32 @@ class JobDispatcher:
         logger.info(f"Running {self.number_of_jobs} jobs")
         logger.info(f"Requested cores: {self.maxcores} cores")
 
-        candidate_jobs_list = copy.copy(self.jobs_list)
+        # candidate_jobs_list = copy.copy(self.jobs_list)
+        candidate_jobs_list = self.jobs_list
+
         job_balancer = self._job_balancer
         engine = self._engine
 
+        lock = engine.resource_available
+
+        counter_rebalances = 0
+
         while candidate_jobs_list:
             used_cores = engine.used_cores
+
+            if used_cores + 1 == self.maxcores:
+                continue
+
             new_jobs = job_balancer.run(used_cores, candidate_jobs_list)
+            counter_rebalances += 1
+
             engine.add_jobs(new_jobs)
-            engine.run()
 
-            # in multithreading sleep is fundamental, otherwise all the resources will be
-            # taken by this while loop and other threads will be super slow!
-            time.sleep(0.01)
+            with lock:
+                engine.run()
+                lock.wait()
 
+        logger.debug("Total number of rebalances: ", counter_rebalances)
         self.results = engine.results
 
         return self.results

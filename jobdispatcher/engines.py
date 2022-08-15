@@ -7,16 +7,13 @@ Created on Fri Aug 12 09:56:16 2022
 """
 from abc import ABC, abstractmethod
 import threading
-from multiprocessing import (
-    Process,
-    active_children,
-    Manager,
-)
+from multiprocessing import Process, active_children, Manager, Condition
 from typing import Callable, List
 import time
 import os
 import logging
 import copy
+from queue import Empty
 
 from jobdispatcher.jobs import Job
 
@@ -42,7 +39,13 @@ class MultithreadEngine(Engine):
         self._running_jobs = {}
         self._cores_per_job = cores_per_job
         self._threads = []
+        self.name = "multithreading"
         logger.info("Using multithreading engine")
+        self._resource_available = threading.Condition()
+
+    @property
+    def resource_available(self):
+        return self._resource_available
 
     def add_jobs(self, jobs: list):
         self._jobs.extend(jobs)
@@ -112,6 +115,9 @@ class MultithreadEngine(Engine):
             finished_job = self._running_jobs.pop(job_id)
             self._completed_jobs[job_id] = finished_job
 
+            with self.resource_available:
+                self.resource_available.notify()
+
             total_time = time.time() - start_time
             logger.info(
                 f"Elapsed time for job #{job_id} - {job_name}: {total_time:.6f} s, "
@@ -146,18 +152,18 @@ class MultiprocessEngine(Engine):
         self._running_jobs = {}
         self._cores_per_job = cores_per_job
 
-        for process in active_children():
-            if "SyncManager" in process.name:
-                logger.debug("Rogue SyncManager found. Killing it.")
-                process.terminate()
+        self.name = "multiprocessing"
 
-        # self._results_queue: Manager().Queue() = Manager().Queue()
-        # self._completed_processes: Manager().Queue() = Manager().Queue()
-        self.manager = Manager()
-        self._running_jobs = self.manager.dict()
-        self._results = self.manager.dict()
+        self._results_queue = Manager().Queue()
+        self._resource_available = Manager().Condition()
+
+        self._results = {}
 
         logger.info("Using multiprocessing engine")
+
+    @property
+    def resource_available(self):
+        return self._resource_available
 
     def add_jobs(self, jobs: list):
         self._jobs.extend(jobs)
@@ -194,7 +200,7 @@ class MultiprocessEngine(Engine):
         else:
             cores = 1
 
-        def decorated_function(results, running_jobs) -> None:
+        def decorated_function(results, resource_available) -> None:
             """Decorate function to be returned."""
             start_time = time.time()
 
@@ -204,8 +210,10 @@ class MultiprocessEngine(Engine):
             result: object = user_function(
                 *args, **kwargs
             )  # run function and catch output
-            results[job_name] = result
-            running_jobs.pop(job_id)
+            results.put_nowait((job_name, job_id, result))
+
+            with resource_available:
+                resource_available.notify()
 
             total_time = time.time() - start_time
             logger.info(
@@ -216,6 +224,7 @@ class MultiprocessEngine(Engine):
         return decorated_function
 
     def run(self) -> List:
+
         while self._jobs:
             job = self._jobs.pop()
             job_id = self._job_counter
@@ -228,7 +237,7 @@ class MultiprocessEngine(Engine):
             worker: Process = Process(
                 name=process_name,
                 target=decorated_job,
-                args=(self._results, self._running_jobs,),
+                args=(self._results_queue, self._resource_available),
             )
             worker.start()  # start job
 
@@ -239,10 +248,29 @@ class MultiprocessEngine(Engine):
                 continue
             child.join()
 
-        return dict(self._results)
+        for process in active_children():
+            if "SyncManager" in process.name:
+                logger.debug("Rogue SyncManager found. Killing it.")
+                process.terminate()
+
+        return self._results
 
     @property
     def used_cores(self):
+        completed_ids = []
+
+        while True:
+            try:
+                job_name, job_id, result = self._results_queue.get_nowait()
+            except Empty:
+                break
+            else:
+                self._results[job_name] = result
+                completed_ids.append(job_id)
+
+        for idx in completed_ids:
+            del self._running_jobs[idx]
+
         return sum([job.cores for job in self._running_jobs.values()])
 
     @property
