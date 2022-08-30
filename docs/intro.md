@@ -1,16 +1,60 @@
-# Welcome to your Jupyter Book
+# JobDispatcher Docs
+````{card}
+**Release: 0.18**
+^^^
+**JobDispatcher** is a python job scheduler library that helps the user execute concurrent independent functions in a simple way without the need to tinker with multiprocessing and threading libraries.
 
-This is a small sample book to give you a feel for how book content is
-structured.
+JobDispatcher main application is to run code external to the python interpreter, but can also be used to perform concurrent I/O operations when operated with its threading engine.
+````
 
-:::{note}
-Here is a note!
+
+
+**Where to go next**
+  
+::::{grid} 1 1 2 2
+:class-container: text-center
+:gutter: 3
+
+:::{grid-item-card}
+:link: getting-started
+:link-type: doc
+:class-header: bg-light
+
+Getting started 💡
+^^^
+
+A quick tour covering the library installation and some basic operations.
 :::
 
-And here is a code block:
+:::{grid-item-card}
+:link: user-guide
+:link-type: doc
+:class-header: bg-light
 
-```
-e = mc^2
-```
+User guide 📑
+^^^
 
-Check out the content pages bundled with this sample book to see more.
+The user guide provides in-dapth information on the key concepts of JobDispatcher.
+:::
+
+:::{grid-item-card}
+:link: api
+:link-type: doc
+:class-header: bg-light
+
+API reference 🔎
+^^^
+
+A detailed description of all the functions, modules and objects included in JobDispatcher.
+:::
+
+:::{grid-item-card}
+:link: api
+:link-type: doc
+:class-header: bg-light
+Contributors guide 🔎
+^^^
+
+Guidelines to guide developers through the process of improving Jobdispatcher.
+:::
+

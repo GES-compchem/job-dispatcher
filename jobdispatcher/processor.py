@@ -108,6 +108,10 @@ class JobDispatcher:
 
         self.cores_per_job: int = cores_per_job  # number of cores used per job
 
+        # allow the user to either provide a list of jobs or a single job
+        if not isinstance(jobs_list, list):
+            jobs_list = [jobs_list]
+
         for job in jobs_list:
             self._is_it_job(job)
 
