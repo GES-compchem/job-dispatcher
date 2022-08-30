@@ -4,9 +4,11 @@
 format: jb-book
 root: intro
 chapters:
-- file: getting_started
-- file: user_guide
+- file: getting-started
+- file: user-guide
+#  sections:
+# 	  - file: guide/intro
 - file: API_reference
 - file: contributors_guide
-- file: markdown
-- file: notebooks
+#- file: markdown
+#- file: notebooks

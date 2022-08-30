@@ -1,23 +1,60 @@
-# Welcome to your the JobDispatcher documentation
+# JobDispatcher Docs
+````{card}
+**Release: 0.18**
+^^^
+**JobDispatcher** is a python job scheduler library that helps the user execute concurrent independent functions in a simple way without the need to tinker with multiprocessing and threading libraries.
 
-:Release: |0.18|
-:Date: ||
+JobDispatcher main application is to run code external to the python interpreter, but can also be used to perform concurrent I/O operations when operated with its threading engine.
+````
 
-**JobDispatcher** is a python job scheduler library that helps the user execute concurrent independent functions in a simple way
-without the need to tinker with multiprocessing and threading libraries.
 
-JobDispatcher main application is to run code external to the python interpreter. By providing a Job class, the user can set the number of cores available to external applications, and JobDispatcher will take care of launching the jobs in an order such that the CPU core usage is maximized.
 
-JobDispatcher can also be used to easily perform concurrent I/O operations when operated with its threading engine.
+**Where to go next**
+  
+::::{grid} 1 1 2 2
+:class-container: text-center
+:gutter: 3
 
-run concurrent indipendent threads or processes
+:::{grid-item-card}
+:link: getting-started
+:link-type: doc
+:class-header: bg-light
 
-### Installing JobDispatcher
-The easiest way to install the latest release of JobDispatcher is through conda package manager:
+Getting started 💡
+^^^
 
-```
-conda install -c greenenergystorage job-dispatcher
-```
+A quick tour covering the library installation and some basic operations.
+:::
 
-### Using JobDispatcher
-If you're a first time user, please refer to the [Getting Started section](getting_started)
+:::{grid-item-card}
+:link: user-guide
+:link-type: doc
+:class-header: bg-light
+
+User guide 📑
+^^^
+
+The user guide provides in-dapth information on the key concepts of JobDispatcher.
+:::
+
+:::{grid-item-card}
+:link: api
+:link-type: doc
+:class-header: bg-light
+
+API reference 🔎
+^^^
+
+A detailed description of all the functions, modules and objects included in JobDispatcher.
+:::
+
+:::{grid-item-card}
+:link: api
+:link-type: doc
+:class-header: bg-light
+Contributors guide 🔎
+^^^
+
+Guidelines to guide developers through the process of improving Jobdispatcher.
+:::
+
