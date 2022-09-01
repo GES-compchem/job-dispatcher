@@ -34,7 +34,7 @@ def my_function():
 job = jd.Job(name="first_job", function=my_function)
 ```
 
-Then, we need to assign the Job to JobDispatcher and invoke the `run` method. In this easy example, we will perform the assignment at the initialization of the JobDispatcher instance by providing to the constructor the job instance, but more advanced assigment methods are available in the [User Guide](user-guide).
+Then, we need to assign the Job to JobDispatcher and invoke the `run` method. In this easy example, we will perform the assignment at the initialization of the JobDispatcher instance by providing to the constructor the job instance, but more advanced assigment methods are available in the [User Guide](user-guide/intro).
 
 ```python
 dispatcher = jd.JobDispatcher(job)
@@ -121,4 +121,4 @@ dispatcher = jd.JobDispatcher(jobs, maxcores=4)
 results = dispatcher.run()
 ```
 
-More advanced uses of JobDispatcher are detailed in the [User Guide](user-guide).
+More advanced uses of JobDispatcher are detailed in the [User Guide](user-guide/intro).

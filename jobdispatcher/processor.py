@@ -27,6 +27,9 @@ from jobdispatcher.packing.chunker import chunker
 logger = logging.getLogger(__name__)
 
 
+print("ciao!!")
+
+
 @dataclass
 class Job:
     """Represent a job as a function and its arguments.

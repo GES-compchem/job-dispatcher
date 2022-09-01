@@ -27,7 +27,7 @@ A quick tour covering the library installation and some basic operations.
 :::
 
 :::{grid-item-card}
-:link: user-guide
+:link: user-guide/intro
 :link-type: doc
 :class-header: bg-light
 
@@ -38,7 +38,7 @@ The user guide provides in-dapth information on the key concepts of JobDispatche
 :::
 
 :::{grid-item-card}
-:link: api
+:link: api-reference
 :link-type: doc
 :class-header: bg-light
 
@@ -49,7 +49,7 @@ A detailed description of all the functions, modules and objects included in Job
 :::
 
 :::{grid-item-card}
-:link: api
+:link: contributors-guide
 :link-type: doc
 :class-header: bg-light
 Contributors guide 🔎
