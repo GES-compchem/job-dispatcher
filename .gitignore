@@ -133,3 +133,6 @@ dmypy.json
 
 # Jupyter-book
 docs/_build
+
+# Pycharm
+.idea/
