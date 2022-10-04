@@ -10,6 +10,9 @@ chapters:
      #- file: user-guide/intro
       - file: user-guide/job-definition
       - file: user-guide/job-scheduling
+      - file: user-guide/job-running
       - file: user-guide/logger
 - file: api-reference
+  sections:
+      - file: API/processor
 - file: contributors-guide

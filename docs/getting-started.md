@@ -45,17 +45,17 @@ This should print "This is my first job" to the screen.
 
 
 ## Jobs with arguments and retrieving results
-You can also create Jobs for functions that accept positional and keyword arguments. Positional arguments must be provided as a list, while keyword arguments as a dictionary:
+You can also create Jobs for functions that accept positional and keyword arguments. Here we show a simple example with positional arguments, while a more complete
+explanation can be found in the [User Guide](user-guide/intro).
 
 ```python
 
-def my_function(a, b = 5):
-	return a*b
+def my_function(a):
+	return a*2
 
 job = jd.Job(name="first job", 
 		 function=my_function,  	    
- 	     arguments=[2],
-	     keyword_arguments={'b': 6})
+ 	     arguments=[2])
 ```
 
 If the function has a return value, JobDispatcher's `.run()` function will return a dictionary whose entry has the job name as a key and the function result as value.
