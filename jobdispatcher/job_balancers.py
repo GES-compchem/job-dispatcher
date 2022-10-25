@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Aug 11 11:22:11 2022
-
-@author: mpalermo
-"""
 import logging
 from jobdispatcher.packing.to_constant_volume import to_constant_volume
 from jobdispatcher.packing.chunker import chunker
@@ -14,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 class JobBalancer:
     """
+    Determines which jobs should be provided next to the engine.
     """
 
     def __init__(self, maxcores):
@@ -67,9 +61,7 @@ class JobBalancer:
 
         # else find available jobs
 
-        free_cores = (
-            self.maxcores - unavailable_cores - 1
-        )  # -1 to keep master core free
+        free_cores = self.maxcores - unavailable_cores - 1  # -1 to keep master core free
 
         if free_cores < 0:
             raise ValueError(
@@ -109,7 +101,11 @@ class JobBalancer:
                 (index, candidate_jobs_list[index].cores) for index in range(start, end)
             ]
 
-            packs = to_constant_volume(index_cores, free_cores, weight_pos=1,)
+            packs = to_constant_volume(
+                index_cores,
+                free_cores,
+                weight_pos=1,
+            )
 
             # Sometimes the fullest pack is not at the forefront, let's reorder
             def sorting_func(pack):
@@ -154,9 +150,7 @@ class JobBalancer:
             for index in sorted(indexes, reverse=True):
                 job = candidate_jobs_list.pop(index)
                 jobs_to_be_run.append(job)
-                logger.debug(
-                    f'BIN PACKING: Adding job "{job.name}" ({job.cores} cores)'
-                )
+                logger.debug(f'BIN PACKING: Adding job "{job.name}" ({job.cores} cores)')
             logger.debug(
                 f"----- BALANCER OUTPUT: Using "
                 f"{self.maxcores-free_cores+cores}/{self.maxcores} cores -----"
