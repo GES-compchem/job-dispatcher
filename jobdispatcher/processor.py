@@ -147,7 +147,7 @@ class JobDispatcher:
                 engine.run()
                 lock.wait()
 
-        logger.debug("Total number of rebalances: ", counter_rebalances)
+        logger.debug(f"Total number of rebalances: {counter_rebalances}")
 
         # make sure we get all the results
         while number_of_jobs != len(engine.results):
