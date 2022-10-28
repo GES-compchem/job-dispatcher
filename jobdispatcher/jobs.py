@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Aug 12 11:02:24 2022
-
-@author: mpalermo
-"""
 from dataclasses import dataclass, field
 from typing import Callable, List, Any, Dict
 
@@ -35,7 +28,7 @@ class Job:
 
     @property
     def cores(self):  # pylint: disable=E0102
-        """ Number of cores used by the job.
+        """Number of cores used by the job.
 
         Returns
         -------

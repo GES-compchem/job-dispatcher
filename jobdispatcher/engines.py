@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Aug 12 09:56:16 2022
-
-@author: mpalermo
-"""
 from abc import ABC, abstractmethod
 import threading
 from multiprocessing import Process, active_children, Manager, Condition
@@ -29,8 +22,11 @@ class Engine(ABC):
     def run(self):
         pass
 
+    def clean(self):
+        pass
 
-class MultithreadEngine(Engine):
+
+class ThreadingEngine(Engine):
     def __init__(self, cores_per_job=-1):
         self._results = {}
         self._completed_jobs = {}
@@ -39,8 +35,8 @@ class MultithreadEngine(Engine):
         self._running_jobs = {}
         self._cores_per_job = cores_per_job
         self._threads = []
-        self.name = "multithreading"
-        logger.info("Using multithreading engine")
+        self.name = "threading"
+        logger.info("Using threading engine")
         self._resource_available = threading.Condition()
 
     @property
@@ -50,7 +46,7 @@ class MultithreadEngine(Engine):
     def add_jobs(self, jobs: list):
         self._jobs.extend(jobs)
 
-    def _initiate(self):
+    def clean(self):
         pass
 
     def run(self):
@@ -145,7 +141,7 @@ class MultithreadEngine(Engine):
         return self._cores_per_job
 
 
-class MultiprocessEngine(Engine):
+class MultiprocessingEngine(Engine):
     def __init__(self, cores_per_job=-1):
         self._jobs = []
         self._job_counter = 0
@@ -243,17 +239,21 @@ class MultiprocessEngine(Engine):
 
     @property
     def results(self):
+        # Check and wait until any active calculation finishes
         for child in active_children():
             if "SyncManager" in child.name:
                 continue
             child.join()
 
+        self.used_cores  # this ensures the results queue is completely dumped
+
+        return self._results
+
+    def clean(self):
         for process in active_children():
             if "SyncManager" in process.name:
                 logger.debug("Rogue SyncManager found. Killing it.")
                 process.terminate()
-
-        return self._results
 
     @property
     def used_cores(self):

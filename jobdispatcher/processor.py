@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Nov 19 12:40:18 2021
-
-@author: mpalermo
-"""
-
 import os
 import sys
 import logging
@@ -16,7 +8,7 @@ import time
 
 from multiprocessing import Manager
 from jobdispatcher.job_balancers import JobBalancer
-from jobdispatcher.engines import MultithreadEngine, MultiprocessEngine
+from jobdispatcher.engines import ThreadingEngine, MultiprocessingEngine
 from jobdispatcher.jobs import Job
 
 logger = logging.getLogger(__name__)
@@ -66,12 +58,12 @@ class JobDispatcher:
         self._job_balancer = JobBalancer(self.maxcores)
 
         if engine == "multiprocessing":
-            self._engine = MultiprocessEngine(cores_per_job=cores_per_job)
-        elif engine == "multithreading":
-            self._engine = MultithreadEngine(cores_per_job=cores_per_job)
+            self._engine = MultiprocessingEngine(cores_per_job=cores_per_job)
+        elif engine == "threading":
+            self._engine = ThreadingEngine(cores_per_job=cores_per_job)
         else:
             raise ValueError(
-                f"""Jobdispatcher engine argument accepts either "multiprocessing" or "multithreading" keywords. Instead, "{engine}" was provided."""
+                f"""Jobdispatcher engine argument accepts either "multiprocessing" or "threading" keywords. Instead, "{engine}" was provided."""
             )
 
         self.results = {}
@@ -131,6 +123,8 @@ class JobDispatcher:
         # candidate_jobs_list = copy.copy(self.jobs_list)
         candidate_jobs_list = self.jobs_list
 
+        number_of_jobs = len(candidate_jobs_list)
+
         job_balancer = self._job_balancer
         engine = self._engine
 
@@ -153,7 +147,13 @@ class JobDispatcher:
                 engine.run()
                 lock.wait()
 
-        logger.debug("Total number of rebalances: ", counter_rebalances)
+        logger.debug(f"Total number of rebalances: {counter_rebalances}")
+
+        # make sure we get all the results
+        while number_of_jobs != len(engine.results):
+            time.sleep(0.1)
+
         self.results = engine.results
+        engine.clean()
 
         return self.results
