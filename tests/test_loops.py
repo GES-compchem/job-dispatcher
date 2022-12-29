@@ -51,10 +51,10 @@ def test_Static_get_chuncks_reminder():
 # Test the get_chuncks function of the Static class with less jobs than cores
 def test_Static_get_chuncks_less():
 
-    obj = Static(4)
+    obj = Static(2)
 
     try:
-        result = obj.get_chunks(3)
+        result = obj.get_chunks(1)
     except RuntimeError:
         assert True
     else:
@@ -99,10 +99,10 @@ def test_Dynamic_get_chuncks_reminder():
 # Test the get_chuncks function of the Dynamic class with less jobs than cores
 def test_Dynamic_get_chuncks_less():
 
-    obj = Dynamic(4, 2)
-    result = obj.get_chunks(3)
+    obj = Dynamic(2, 2)
+    result = obj.get_chunks(2)
 
-    assert result == [[0, 1], [2]]
+    assert result == [[0, 1]]
 
 
 # TEST OF THE pFor CLASS
