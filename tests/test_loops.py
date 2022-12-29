@@ -1,7 +1,7 @@
 import pytest
 from numpy.testing import assert_array_almost_equal
 from multiprocessing import cpu_count
-from jobdispatcher.index_based_loops import pFor, Static, Dynamic
+from jobdispatcher.index_based_loops import ParallelFor, Static, Dynamic
 
 
 # Simple function to be used to test calls without arguments
@@ -114,64 +114,64 @@ def test_Dynamic_get_chunks_less():
     assert result == [[0, 1]]
 
 
-# TEST OF THE pFor CLASS
+# TEST OF THE ParallelFor CLASS
 # ------------------------------------------------------------------------------------------
 
-# Test the pFor class constructor
-def test_pFor___init__():
+# Test the ParallelFor class constructor
+def test_ParallelFor___init__():
 
     try:
-        _ = pFor(Static(2))
+        _ = ParallelFor(Static(2))
     except:
         assert (
             False
-        ), "Unexpected exception raised during pFor class construction with Static scheduler"
+        ), "Unexpected exception raised during ParallelFor class construction with Static scheduler"
 
     try:
-        _ = pFor(Dynamic(2, 10))
+        _ = ParallelFor(Dynamic(2, 10))
     except:
         assert (
             False
-        ), "Unexpected exception raised during pFor class construction with Dynamic scheduler"
+        ), "Unexpected exception raised during ParallelFor class construction with Dynamic scheduler"
 
 
-# Test the pFor call of a function without arguments using the Static scheduler
-def test_pFor___call___Static_without_args():
+# Test the ParallelFor call of a function without arguments using the Static scheduler
+def test_ParallelFor___call___Static_without_args():
 
-    results = pFor(Static(2))(function_without_args, 0, 10, 2)
+    results = ParallelFor(Static(2))(function_without_args, 0, 10, 2)
     assert results == [1, 3, 5, 7, 9]
 
 
-# Test the pFor call of a function without arguments using the Static scheduler with reminder
-def test_pFor___call___Static_without_args_reminder():
+# Test the ParallelFor call of a function without arguments using the Static scheduler with reminder
+def test_ParallelFor___call___Static_without_args_reminder():
 
-    results = pFor(Static(2))(function_without_args, 0, 5, 1)
+    results = ParallelFor(Static(2))(function_without_args, 0, 5, 1)
     assert results == [1, 2, 3, 4, 5]
 
 
-# Test the pFor call of a function with arguments using the Static scheduler
-def test_pFor___call___Static_with_args():
+# Test the ParallelFor call of a function with arguments using the Static scheduler
+def test_ParallelFor___call___Static_with_args():
 
-    results = pFor(Static(2))(function_with_args, 0, 10, 2, [1.5])
+    results = ParallelFor(Static(2))(function_with_args, 0, 10, 2, [1.5])
     assert_array_almost_equal(results, [0, 3, 6, 9, 12], decimal=6)
 
 
-# Test the pFor call of a function without arguments using the Dynamic scheduler
-def test_pFor___call___Dynamic_without_args():
+# Test the ParallelFor call of a function without arguments using the Dynamic scheduler
+def test_ParallelFor___call___Dynamic_without_args():
 
-    results = pFor(Dynamic(2, 3))(function_without_args, 0, 10, 2)
+    results = ParallelFor(Dynamic(2, 3))(function_without_args, 0, 10, 2)
     assert results == [1, 3, 5, 7, 9]
 
 
-# Test the pFor call of a function without arguments using the Dynamic scheduler with reminder
-def test_pFor___call___Dynamic_without_args_reminder():
+# Test the ParallelFor call of a function without arguments using the Dynamic scheduler with reminder
+def test_ParallelFor___call___Dynamic_without_args_reminder():
 
-    results = pFor(Dynamic(2, 2))(function_without_args, 0, 11, 1)
+    results = ParallelFor(Dynamic(2, 2))(function_without_args, 0, 11, 1)
     assert results == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 
 
-# Test the pFor call of a function with arguments using the Dynamic scheduler
-def test_pFor___call___Dynamic_with_args():
+# Test the ParallelFor call of a function with arguments using the Dynamic scheduler
+def test_ParallelFor___call___Dynamic_with_args():
 
-    results = pFor(Dynamic(2, 3))(function_with_args, 0, 10, 2, [1.5])
+    results = ParallelFor(Dynamic(2, 3))(function_with_args, 0, 10, 2, [1.5])
     assert_array_almost_equal(results, [0, 3, 6, 9, 12], decimal=6)

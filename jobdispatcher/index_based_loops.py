@@ -186,11 +186,12 @@ class Dynamic(Scheduler):
         return chunks
 
 
-class pFor:
+class ParallelFor:
     """
-    The pFor class implements a parallel, index-based, for loop capable of executing in parallel
-    independent tasks identified by a univocal index. The pFor object is constructed by specifying
-    a schedule mode. By then using the built in `__call__` function the for loop can be executed.
+    The ParallelFor class implements a parallel, index-based, for loop capable of executing 
+    in parallel     independent tasks identified by a univocal index. The ParallelFor object
+    is constructed by specifying     a schedule mode. By then using the built in `__call__` 
+    function the for loop can be executed.
 
     Arguments
     ---------
