@@ -8,9 +8,11 @@ from jobdispatcher.index_based_loops import pFor, Static, Dynamic
 def function_without_args(n: int) -> int:
     return n + 1
 
+
 # Simple function to be used to test calls with arguments
 def function_with_args(n: int, value: float) -> float:
     return n * value
+
 
 # TESTS FOR THE Static SCHEDULER CLASS
 # ------------------------------------------------------------------------------------------
@@ -22,15 +24,16 @@ def test_Static___init__():
         obj = Static(2)
     except:
         assert False, "Unexpected exception raised on Static class construction"
-    
+
     assert obj.cores == 2
 
     try:
         obj = Static(-1)
     except:
         assert False, "Unexpected exception raised on Static class construction"
-    
+
     assert obj.cores == cpu_count()
+
 
 # Test the get_chuncks function of the Static class with exact job/core ratio
 def test_Static_get_chuncks_exact():
@@ -40,6 +43,7 @@ def test_Static_get_chuncks_exact():
 
     assert result == [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
 
+
 # Test the get_chuncks function of the Static class with reminder
 def test_Static_get_chuncks_reminder():
 
@@ -47,6 +51,7 @@ def test_Static_get_chuncks_reminder():
     result = obj.get_chunks(11)
 
     assert result == [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9, 10]]
+
 
 # Test the get_chuncks function of the Static class with less jobs than cores
 def test_Static_get_chuncks_less():
@@ -60,6 +65,7 @@ def test_Static_get_chuncks_less():
     else:
         assert False, "A RuntimeError exception was expected"
 
+
 # TESTS FOR THE Dynamic SCHEDULER CLASS
 # ------------------------------------------------------------------------------------------
 
@@ -70,15 +76,16 @@ def test_Dynamic___init__():
         obj = Dynamic(2, 2)
     except:
         assert False, "Unexpected exception raised on Dynamic class construction"
-    
+
     assert obj.cores == 2
 
     try:
         obj = Dynamic(-1, 2)
     except:
         assert False, "Unexpected exception raised on Dynamic class construction"
-    
+
     assert obj.cores == cpu_count()
+
 
 # Test the get_chuncks function of the Dynamic class with exact job/core ratio
 def test_Dynamic_get_chuncks_exact():
@@ -88,6 +95,7 @@ def test_Dynamic_get_chuncks_exact():
 
     assert result == [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
 
+
 # Test the get_chuncks function of the Dynamic class with reminder
 def test_Dynamic_get_chuncks_reminder():
 
@@ -95,6 +103,7 @@ def test_Dynamic_get_chuncks_reminder():
     result = obj.get_chunks(10)
 
     assert result == [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]
+
 
 # Test the get_chuncks function of the Dynamic class with less jobs than cores
 def test_Dynamic_get_chuncks_less():
@@ -133,6 +142,13 @@ def test_pFor___call___Static_without_args():
     assert results == [1, 3, 5, 7, 9]
 
 
+# Test the pFor call of a function without arguments using the Static scheduler with reminder
+def test_pFor___call___Static_without_args_reminder():
+
+    results = pFor(Static(2))(function_without_args, 0, 5, 1)
+    assert results == [1, 2, 3, 4, 5]
+
+
 # Test the pFor call of a function with arguments using the Static scheduler
 def test_pFor___call___Static_with_args():
 
@@ -145,6 +161,13 @@ def test_pFor___call___Dynamic_without_args():
 
     results = pFor(Dynamic(2, 3))(function_without_args, 0, 10, 2)
     assert results == [1, 3, 5, 7, 9]
+
+
+# Test the pFor call of a function without arguments using the Dynamic scheduler with reminder
+def test_pFor___call___Dynamic_without_args_reminder():
+
+    results = pFor(Dynamic(2, 2))(function_without_args, 0, 11, 1)
+    assert results == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 
 
 # Test the pFor call of a function with arguments using the Dynamic scheduler
