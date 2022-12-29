@@ -35,8 +35,8 @@ def test_Static___init__():
     assert obj.cores == cpu_count()
 
 
-# Test the get_chuncks function of the Static class with exact job/core ratio
-def test_Static_get_chuncks_exact():
+# Test the get_chunks function of the Static class with exact job/core ratio
+def test_Static_get_chunks_exact():
 
     obj = Static(2)
     result = obj.get_chunks(10)
@@ -44,8 +44,8 @@ def test_Static_get_chuncks_exact():
     assert result == [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
 
 
-# Test the get_chuncks function of the Static class with reminder
-def test_Static_get_chuncks_reminder():
+# Test the get_chunks function of the Static class with reminder
+def test_Static_get_chunks_reminder():
 
     obj = Static(2)
     result = obj.get_chunks(11)
@@ -53,8 +53,8 @@ def test_Static_get_chuncks_reminder():
     assert result == [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9, 10]]
 
 
-# Test the get_chuncks function of the Static class with less jobs than cores
-def test_Static_get_chuncks_less():
+# Test the get_chunks function of the Static class with less jobs than cores
+def test_Static_get_chunks_less():
 
     obj = Static(2)
 
@@ -87,8 +87,8 @@ def test_Dynamic___init__():
     assert obj.cores == cpu_count()
 
 
-# Test the get_chuncks function of the Dynamic class with exact job/core ratio
-def test_Dynamic_get_chuncks_exact():
+# Test the get_chunks function of the Dynamic class with exact job/core ratio
+def test_Dynamic_get_chunks_exact():
 
     obj = Dynamic(2, 2)
     result = obj.get_chunks(10)
@@ -96,8 +96,8 @@ def test_Dynamic_get_chuncks_exact():
     assert result == [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
 
 
-# Test the get_chuncks function of the Dynamic class with reminder
-def test_Dynamic_get_chuncks_reminder():
+# Test the get_chunks function of the Dynamic class with reminder
+def test_Dynamic_get_chunks_reminder():
 
     obj = Dynamic(2, 3)
     result = obj.get_chunks(10)
@@ -105,8 +105,8 @@ def test_Dynamic_get_chuncks_reminder():
     assert result == [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]
 
 
-# Test the get_chuncks function of the Dynamic class with less jobs than cores
-def test_Dynamic_get_chuncks_less():
+# Test the get_chunks function of the Dynamic class with less jobs than cores
+def test_Dynamic_get_chunks_less():
 
     obj = Dynamic(2, 2)
     result = obj.get_chunks(2)
