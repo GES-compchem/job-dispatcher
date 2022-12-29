@@ -110,6 +110,11 @@ class Static(Scheduler):
         """
         super().get_chunks(tasks)
 
+        if tasks < self.cores:
+            raise RuntimeError(
+                "Cannot use a Static scheduler with a number of task smaller than the number of cores"
+            )
+
         extra = self.tasks % self.cores
         load = int((self.tasks - extra) / self.cores)
 

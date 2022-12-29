@@ -49,13 +49,16 @@ def test_Static_get_chuncks_reminder():
     assert result == [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9, 10]]
 
 # Test the get_chuncks function of the Static class with less jobs than cores
-@pytest.mark.xfail
 def test_Static_get_chuncks_less():
 
     obj = Static(4)
-    result = obj.get_chunks(3)
 
-    assert result == [[0], []]
+    try:
+        result = obj.get_chunks(3)
+    except RuntimeError:
+        assert True
+    else:
+        assert False, "A RuntimeError exception was expected"
 
 # TESTS FOR THE Dynamic SCHEDULER CLASS
 # ------------------------------------------------------------------------------------------
